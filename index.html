@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Locker | Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --wood: #4e321e;
+      --cream: #fff7e6;
+      --sand: #ddcdbd;
+      --purple: #8737db;
+      --ink: #3c2e1d
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      font-family: "Noto Sans Thai", sans-serif;
+      background: #f6eedb;
+      color: var(--ink)
+    }
+
+    .page {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .04) 0 8px, rgba(0, 0, 0, .05) 8px 14px), var(--wood)
+    }
+
+    .login {
+      position: relative;
+      width: min(100%, 430px);
+      padding: 35px 28px 30px;
+      background: var(--cream);
+      border: 2px solid var(--purple);
+      border-radius: 25px;
+      box-shadow: 0 16px 35px #1e100980
+    }
+
+        .seal {
+            position: absolute;
+      left: 50%;
+      top: -48px;
+      translate: -50%;
+      width: 82px;
+      height: 82px;
+      border-radius: 50%;
+            display: grid;
+            place-items: center;
+      text-align: center;
+      line-height: 1.05;
+      color: #fff3d1;
+      background: #b6382a;
+      border: 5px double #f5ca75;
+      font-family: "DM Serif Display", serif;
+      font-size: 17px
+    }
+
+        .seal img { width: 100%; height: 100%; display: block; object-fit: contain }
+
+    .login h1 {
+      font-family: "DM Serif Display", serif;
+      text-align: center;
+      font-size: 32px;
+      margin: 22px 0 24px
+    }
+
+    .login label {
+      display: block;
+      font-family: "DM Serif Display", serif;
+      font-size: 15px;
+      margin: 14px 0 6px
+    }
+
+    .login input {
+      width: 100%;
+      border: 0;
+      border-radius: 99px;
+      background: var(--sand);
+      padding: 13px 16px;
+      font: inherit;
+      color: var(--ink);
+      outline: 2px solid transparent
+    }
+
+    .login input:focus {
+      outline-color: #b67be8
+    }
+
+    .options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      margin: 12px 1px 20px
+    }
+
+    .options label {
+      margin: 0;
+      font-family: inherit;
+      font-size: 10px
+    }
+
+    .options a {
+      color: var(--wood);
+      text-decoration: none
+    }
+
+    .submit {
+      width: 100%;
+      border: 0;
+      border-radius: 99px;
+      background: #3c301c;
+      color: #fff8e9;
+      padding: 12px;
+      font: 600 19px "DM Serif Display", serif;
+      cursor: pointer
+    }
+
+    .submit:hover {
+      background: #624b2d
+    }
+
+    .note {
+      font-size: 10px;
+      text-align: center;
+      color: #816e58;
+      margin: 16px 0 0
+    }
+
+    .error {
+      display: none;
+      margin: 12px 0 -2px;
+      padding: 9px 11px;
+      border-radius: 8px;
+      background: #ffe1dd;
+      color: #9a3026;
+      font-size: 11px
+    }
+
+    .error.show {
+      display: block
+    }
+
+    .help {
+      position: fixed;
+      right: 23px;
+      top: 22px;
+      width: 39px;
+      height: 39px;
+      border-radius: 50%;
+      border: 0;
+      color: white;
+      background: #ad8b63;
+      font: 27px "DM Serif Display", serif
+    }
+
+    @media(max-width:450px) {
+      .login {
+        padding: 31px 23px 25px
+      }
+
+      .page {
+        padding: 16px
+      }
+
+      .seal {
+        width: 74px;
+        height: 74px;
+        top: -43px
+      }
+
+      .login h1 {
+        margin-top: 18px
+      }
+    }
+
+    .signup {
+      display: block;
+      text-align: center;
+      margin-top: 18px;
+      font-size: 12px;
+      color: #685642
+    }
+
+    .signup a {
+      font-weight: 700;
+      color: var(--wood)
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page"><button class="help" title="ติดต่อผู้ดูแล">?</button>
+    <form class="login" id="loginForm">
+            <div class="seal"><img src="/assets/logo.svg" alt="Smart Locker logo"></div>
+      <h1>Login</h1><label for="identifier">Username หรือ Email</label><input id="identifier" type="text"
+        autocomplete="username" required><label for="password">Password</label><input id="password" type="password"
+        autocomplete="current-password" required>
+      <div class="options"><label><input type="checkbox"> Remember me</label><a href="#">Forgot password?</a></div>
+      <button class="submit" type="submit">Login</button>
+      <p class="error" id="error"></p>
+      <p class="signup">ยังไม่มีบัญชี? <a href="/register.html">Sign up for a new account</a></p>
+    </form>
+  </main>
+  <script>
+    const form = document.querySelector('#loginForm'), error = document.querySelector('#error');
+    form.addEventListener('submit', async e => { e.preventDefault(); error.classList.remove('show'); const button = form.querySelector('button[type=submit]'); button.textContent = 'กำลังเข้าสู่ระบบ...'; button.disabled = true; try { const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifier: identifier.value.trim(), password: password.value }) }); const data = await res.json(); if (!res.ok) throw new Error(data.message); localStorage.setItem('lockerToken', data.token); location.href = data.next === 'rfid' ? '/rfid-enroll.html' : '/dashboard.html' } catch (err) { error.textContent = err.message || 'เข้าสู่ระบบไม่สำเร็จ'; error.classList.add('show') } finally { button.textContent = 'Login'; button.disabled = false } });
+  </script>
+</body>
+
+</html>

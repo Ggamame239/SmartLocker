@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ยืนยันบัตร RFID | Smart Locker</title>
+  <style>
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, "Noto Sans Thai", sans-serif;
+      color: #3c2e1c
+    }
+
+    .page {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: repeating-linear-gradient(90deg, #4c301c 0 9px, #573820 9px 15px)
+    }
+
+    .card {
+      width: min(100%, 450px);
+      text-align: center;
+      padding: 43px 29px 30px;
+      border: 2px solid #8737db;
+      border-radius: 26px;
+      background: #fff7e6;
+      box-shadow: 0 17px 38px #1d100a9c
+    }
+
+    .icon {
+      width: 83px;
+      height: 83px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 18px;
+      border-radius: 50%;
+      background: #f0dfbd;
+      color: #79511e;
+      font-size: 42px
+    }
+
+    .card h1 {
+      font-family: Georgia, serif;
+      font-size: 32px;
+      margin: 0 0 9px
+    }
+
+    .card p {
+      font-size: 14px;
+      line-height: 1.7;
+      margin: 0;
+      color: #6f5d48
+    }
+
+    .waiting {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      margin-top: 22px;
+      color: #2a714b;
+      font-size: 12px;
+      font-weight: 700
+    }
+
+    .pulse {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #32a66c;
+      box-shadow: 0 0 0 0 #32a66c88;
+      animation: pulse 1.4s infinite
+    }
+
+    @keyframes pulse {
+      70% {
+        box-shadow: 0 0 0 9px transparent
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 transparent
+      }
+    }
+
+    button {
+      margin-top: 25px;
+      border: 0;
+      background: transparent;
+      color: #765d40;
+      text-decoration: underline;
+      font: 12px inherit;
+      cursor: pointer
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <section class="card">
+      <div class="icon">◉</div>
+      <h1>ยืนยันบัตร RFID</h1>
+      <p>โปรดนำบัตรไปแตะที่ตู้ RFID<br>ระบบจะยืนยันบัญชีของคุณโดยอัตโนมัติ</p>
+      <div class="waiting"><i class="pulse"></i><span id="status">กำลังรอการแตะบัตร…</span></div><button
+        id="cancel">กลับไปหน้าเข้าสู่ระบบ</button>
+    </section>
+  </main>
+  <script>
+    const token = localStorage.getItem('lockerToken'); if (!token) location.replace('/');
+    async function check() { try { const r = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } }); const d = await r.json(); if (!r.ok) throw Error(d.message); if (d.profile.rfidStatus === 'verified') { status.textContent = 'ยืนยันบัตรสำเร็จ กำลังเข้าสู่ระบบ…'; setTimeout(() => location.replace('/dashboard.html'), 700) } } catch (e) { status.textContent = e.message } }
+    check(); const timer = setInterval(check, 2500); cancel.onclick = () => { clearInterval(timer); localStorage.removeItem('lockerToken'); location.href = '/' };
+  </script>
+</body>
+
+</html>

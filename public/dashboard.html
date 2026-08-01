@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Smart Locker Control</title>
+  <style>
+    :root {
+      --wood: #4d321d;
+      --cream: #fff8e8;
+      --ink: #3c2e1c;
+      --green: #276b49
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, "Noto Sans Thai", sans-serif;
+      color: var(--ink);
+      background: repeating-linear-gradient(90deg, #4c301c 0 9px, #573820 9px 15px)
+    }
+
+    header {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 max(19px, 5vw);
+      color: #fff8e8;
+      border-bottom: 1px solid #ffffff30
+    }
+
+    .brand {
+      font: 25px Georgia, serif
+    }
+
+    .brand small {
+      display: block;
+      font: 9px system-ui, sans-serif;
+      letter-spacing: 1.5px;
+      color: #e9cd96
+    }
+
+    header button {
+      border: 1px solid #ffffff50;
+      border-radius: 8px;
+      background: transparent;
+      color: #fff8e8;
+      padding: 7px 10px;
+      font: 12px inherit;
+      cursor: pointer
+    }
+
+    main {
+      width: min(1100px, 100%);
+      margin: auto;
+      padding: 39px 18px 70px
+    }
+
+    .intro {
+      color: #fff8e8;
+      margin-bottom: 18px
+    }
+
+    .intro p {
+      margin: 0;
+      color: #e5c985;
+      font-size: 11px;
+      letter-spacing: 1.6px;
+      text-transform: uppercase
+    }
+
+    .intro h1 {
+      font: 42px Georgia, serif;
+      margin: 4px 0
+    }
+
+    .account {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 13px;
+      margin-bottom: 16px;
+      padding: 15px 18px;
+      border-radius: 16px;
+      background: #f4e5cb
+    }
+
+    .account-icon {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #e2cfac;
+      font-weight: 700
+    }
+
+    .account b {
+      font-size: 14px
+    }
+
+    .account p {
+      margin: 2px 0 0;
+      font-size: 11px;
+      color: #776752
+    }
+
+    .rfid-state {
+      font-size: 11px;
+      font-weight: 700;
+      color: #a44d36
+    }
+
+    .rfid-state.verified {
+      color: var(--green)
+    }
+
+    .panel {
+      background: var(--cream);
+      border-radius: 25px;
+      overflow: hidden;
+      box-shadow: 0 18px 40px #1d100a8c
+    }
+
+    .rfid {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      padding: 18px 24px;
+      background: #f0dfc3
+    }
+
+    .rfid b {
+      font-size: 16px
+    }
+
+    .rfid p {
+      margin: 2px 0 0;
+      font-size: 11px;
+      color: #776752
+    }
+
+    .online {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--green);
+      font-weight: 700
+    }
+
+    .online:before {
+      content: '●';
+      margin-right: 6px
+    }
+
+    .content {
+      padding: 25px
+    }
+
+    .content h2 {
+      font: 26px Georgia, serif;
+      margin: 0 0 18px
+    }
+
+    .lockers {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px
+    }
+
+    .locker {
+      border: 1px solid #e5d5bd;
+      border-radius: 17px;
+      padding: 18px;
+      background: #fffdf8
+    }
+
+    .locker.open {
+      border: 2px solid #82c6a0;
+      background: #f5fff8
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between
+    }
+
+    .number {
+      font: 39px Georgia, serif;
+      color: #cfb08b
+    }
+
+    .badge {
+      height: max-content;
+      border-radius: 20px;
+      padding: 5px 9px;
+      background: #eee2d1;
+      font-size: 10px
+    }
+
+    .open .badge {
+      color: #17633f;
+      background: #ccefd9
+    }
+
+    .locker h3 {
+      font-size: 16px;
+      margin: 14px 0 2px
+    }
+
+    .locker p {
+      font-size: 11px;
+      color: #7e705e;
+      margin: 0 0 17px
+    }
+
+    .control {
+      width: 100%;
+      border: 0;
+      border-radius: 9px;
+      background: var(--wood);
+      color: #fff9e9;
+      padding: 11px;
+      font: 600 13px inherit;
+      cursor: pointer
+    }
+
+    .open .control {
+      background: var(--green)
+    }
+
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 13px;
+      background: #f3e7d2;
+      font-size: 12px
+    }
+
+    .status span {
+      color: var(--green);
+      font-weight: 700
+    }
+
+    @media(max-width:620px) {
+      header {
+        height: 64px
+      }
+
+      .intro h1 {
+        font-size: 35px
+      }
+
+      main {
+        padding-top: 27px
+      }
+
+      .panel {
+        border-radius: 19px
+      }
+
+      .rfid {
+        padding: 15px 17px
+      }
+
+      .online {
+        font-size: 9px
+      }
+
+      .content {
+        padding: 18px
+      }
+
+      .account {
+        grid-template-columns: auto 1fr
+      }
+
+      .rfid-state {
+        grid-column: 1/-1;
+        margin-left: 51px
+      }
+
+      .lockers {
+        grid-template-columns: 1fr
+      }
+
+      .locker {
+        padding: 15px
+      }
+
+      .status {
+        margin-top: 13px
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="brand">Smart Locker<small>Management Dash board</small></div><button id="logout">ออกจากระบบ</button>
+  </header>
+  <main>
+    <div class="intro">
+      <p>Locker Management System</p>
+      <h1>ควบคุมตู้ล็อกเกอร์</h1>
+    </div>
+    <section class="account">
+      <div class="account-icon">U</div>
+      <div><b id="accountName">กำลังโหลดบัญชี…</b>
+        <p id="ownership">เจ้าของล็อกเกอร์: —</p>
+      </div>
+      <div class="rfid-state" id="rfidState">สถานะบัตร: —</div>
+    </section>
+    <section class="panel">
+      <div class="rfid">
+        <div>◉</div>
+        <div><b>RFID พร้อมใช้งาน</b>
+          <p>แตะบัตรเพื่อยืนยันตัวตนก่อนเปิดช่องล็อกเกอร์</p>
+        </div>
+        <div class="online">เชื่อมต่อ ESP32</div>
+      </div>
+      <div class="content">
+        <h2>สถานะช่องล็อกเกอร์</h2>
+        <div class="lockers" id="lockers"></div>
+        <div class="status">สถานะระบบ: <span id="message">กำลังโหลดข้อมูลจาก Firebase...</span></div>
+      </div>
+    </section>
+  </main>
+  <script>
+    const token = localStorage.getItem('lockerToken'); if (!token) location.replace('/'); const lockers = document.querySelector('#lockers'), message = document.querySelector('#message');
+    async function request(url, opts = {}) { const r = await fetch(url, { ...opts, headers: { ...opts.headers, Authorization: `Bearer ${token}` } }); const d = await r.json(); if (r.status === 401) { localStorage.removeItem('lockerToken'); location.replace('/') } if (!r.ok) throw new Error(d.message); return d }
+    function draw(data) { lockers.innerHTML = ''; const entries = Object.entries(data); if (!entries.length) { lockers.innerHTML = '<p class="empty">คุณยังไม่ได้เป็นเจ้าของล็อกเกอร์</p>'; return } for (const [id, locker] of entries) { const open = locker.state === 'open'; lockers.insertAdjacentHTML('beforeend', `<article class="locker ${open ? 'open' : ''}"><div class="top"><b class="number">${String(id).padStart(2, '0')}</b><span class="badge">${open ? 'เปิดอยู่' : 'ล็อกอยู่'}</span></div><h3>ล็อกเกอร์ช่อง ${id}</h3><p>${open ? 'กรุณาปิดประตูหลังใช้งาน' : 'พร้อมให้บริการ'}</p><button class="control" data-id="${id}" data-action="${open ? 'lock' : 'unlock'}">${open ? 'ล็อกช่องนี้' : 'ปลดล็อกช่องนี้'}</button></article>`) } document.querySelectorAll('.control').forEach(b => b.onclick = () => command(b.dataset.id, b.dataset.action)) }
+    async function command(lockerId, action) { try { message.textContent = 'กำลังส่งคำสั่งไป ESP32...'; const d = await request('/api/lockers/' + lockerId, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) }); draw(d.lockers); message.textContent = `ส่งคำสั่ง ${action === 'unlock' ? 'เปิด' : 'ล็อก'} ช่อง ${lockerId} แล้ว` } catch (e) { message.textContent = e.message } }
+    request('/api/me').then(d => { if (d.profile.rfidStatus === 'pending') { location.replace('/rfid-enroll.html'); return } accountName.textContent = d.profile.username || d.profile.email || 'บัญชีผู้ใช้'; const verified = d.profile.rfidStatus === 'verified'; rfidState.textContent = 'สถานะบัตร: ' + (verified ? 'ยืนยัน RFID แล้ว' : 'ยังไม่ได้ยืนยัน RFID'); rfidState.classList.toggle('verified', verified); ownership.textContent = 'เจ้าของล็อกเกอร์: ' + (d.ownedLockerIds.length ? d.ownedLockerIds.map(id => 'ช่อง ' + id).join(', ') : 'ไม่มี') }).catch(e => message.textContent = e.message); request('/api/lockers').then(d => { draw(d.lockers); message.textContent = 'เชื่อมต่อ Firebase สำเร็จ' }).catch(e => message.textContent = e.message); logout.onclick = () => { localStorage.removeItem('lockerToken'); location.href = '/' };
+  </script>
+</body>
+
+</html>
