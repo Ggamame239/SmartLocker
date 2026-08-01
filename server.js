@@ -5,18 +5,9 @@ const express = require('express');
 const admin = require('firebase-admin');
 
 // ตรวจสอบว่าสิ่งที่ต้องมีสำหรับ Firebase ถูกตั้งค่าไว้หรือไม่
-const required = ['FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY_B64', 'FIREBASE_DATABASE_URL', 'FIREBASE_WEB_API_KEY'];
+const required = ['FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_DATABASE_URL', 'FIREBASE_WEB_API_KEY'];
 const missing = required.filter((key) => !process.env[key]);
 if (missing.length) console.warn(`Firebase ยังไม่ถูกตั้งค่า: ${missing.join(', ')}`);
-
-// ฟังก์ชันดึงคีย์จาก Base64 แล้วถอดรหัสกลับมาเป็น PEM Key ที่ถูกต้อง
-const getPrivateKeyFromB64 = () => {
-  const b64Key = process.env.FIREBASE_PRIVATE_KEY_B64;
-  if (!b64Key) return undefined;
-
-  // ถอดรหัสข้อความจาก Base64 กลับมาเป็นสตริงปกติ
-  return Buffer.from(b64Key, 'base64').toString('ascii');
-};
 
 // ถ้ายังไม่มีการเชื่อมต่อ Firebase และค่า env พร้อม ให้เริ่มต้นแอป Firebase
 if (!admin.apps.length && !missing.length) {
@@ -24,7 +15,7 @@ if (!admin.apps.length && !missing.length) {
     credential: admin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: getPrivateKeyFromB64(),
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\n/g, '\n'),
     }),
     databaseURL: process.env.FIREBASE_DATABASE_URL,
   });
