@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap"
         rel="stylesheet">
     <style>
         :root {
@@ -25,7 +25,7 @@
 
         body {
             margin: 0;
-            font-family: "Noto Sans Thai", sans-serif;
+            font-family: "Prompt", sans-serif;
             background: #f6eedb;
             color: var(--ink)
         }
@@ -63,14 +63,15 @@
             color: #fff3d1;
             background: #b6382a;
             border: 5px double #f5ca75;
-            font-family: "DM Serif Display", serif;
+            font-family: "Prompt", sans-serif;
             font-size: 17px
         }
 
         .seal img { width: 100%; height: 100%; display: block; object-fit: contain }
 
         .card h1 {
-            font-family: "DM Serif Display", serif;
+            font-family: "Prompt", sans-serif;
+            font-weight: 700;
             text-align: center;
             font-size: 30px;
             margin: 15px 0 17px
@@ -78,7 +79,8 @@
 
         .card label {
             display: block;
-            font-family: "DM Serif Display", serif;
+            font-family: "Prompt", sans-serif;
+            font-weight: 600;
             font-size: 14px;
             margin: 10px 0 4px
         }
@@ -98,6 +100,41 @@
             outline-color: #b67be8
         }
 
+        .field-group {
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .field-group .field-with-icon {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-password {
+            border: 1px solid rgba(135, 55, 219, .35);
+            background: #fff;
+            color: var(--purple);
+            font: 500 12px "Prompt", sans-serif;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 999px;
+            transition: transform .15s ease, background .15s ease, box-shadow .15s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,.08);
+        }
+
+        .toggle-password:hover {
+            background: #f8f2ff;
+            transform: translateY(-1px);
+        }
+
+        .hint {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #5f4c3e;
+            line-height: 1.5;
+        }
+
         .submit {
             width: 100%;
             margin-top: 20px;
@@ -106,8 +143,15 @@
             background: #3c301c;
             color: #fff8e9;
             padding: 11px;
-            font: 600 18px "DM Serif Display", serif;
-            cursor: pointer
+            font: 600 18px "Prompt", sans-serif;
+            cursor: pointer;
+            box-shadow: 0 12px 24px rgba(60, 48, 28, .16);
+            transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+        }
+
+        .submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 28px rgba(60, 48, 28, .2);
         }
 
         .submit:disabled {
@@ -136,8 +180,26 @@
         }
 
         .back a {
-            font-weight: 700;
-            color: var(--wood)
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 128px;
+            margin-top: 10px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: #fff;
+            border: 1px solid rgba(76, 50, 30, .18);
+            color: var(--wood);
+            font: 700 12px "Prompt", sans-serif;
+            text-decoration: none;
+            box-shadow: 0 10px 24px rgba(0,0,0,.1);
+            transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+        }
+
+        .back a:hover {
+            background: #f7f2ea;
+            transform: translateY(-1px);
+            box-shadow: 0 12px 28px rgba(0,0,0,.14);
         }
     </style>
 </head>
@@ -146,18 +208,80 @@
     <main class="page">
         <form class="card" id="registerForm">
             <div class="seal"><img src="/assets/logo.svg" alt="Smart Locker logo"></div>
-            <h1>Register</h1><label for="username">Username</label><input id="username" minlength="3" maxlength="30"
-                autocomplete="username" required><label for="email">Email</label><input id="email" type="email"
-                autocomplete="email" required><label for="password">Password</label><input id="password" type="password"
-                minlength="6" autocomplete="new-password" required><label for="confirmPassword">Confirm
-                Password</label><input id="confirmPassword" type="password" minlength="6" autocomplete="new-password"
-                required><button class="submit" type="submit">Create Account</button>
+            <h1>Register</h1>
+            <label for="username">Username</label>
+            <input id="username" minlength="3" maxlength="30" autocomplete="username" required>
+            <label for="email">Email</label>
+            <input id="email" type="email" autocomplete="email" required>
+            <div class="field-group">
+                <label for="password">Password</label>
+                <div class="field-with-icon">
+                    <input id="password" type="password" minlength="6" autocomplete="new-password" required>
+                    <button type="button" class="toggle-password" data-target="password">แสดง</button>
+                </div>
+            </div>
+            <div class="field-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <div class="field-with-icon">
+                    <input id="confirmPassword" type="password" minlength="6" autocomplete="new-password" required>
+                    <button type="button" class="toggle-password" data-target="confirmPassword">แสดง</button>
+                </div>
+            </div>
+            <button class="submit" type="submit">Create Account</button>
+            <p class="hint">หลังสมัคร โปรดแตะบัตร RFID ภายใน 60 วินาที มิฉะนั้นระบบจะลบบัญชีที่ยังไม่ได้ยืนยัน (ยกเว้นบัญชี test)</p>
             <p class="error" id="error"></p>
             <p class="back">มีบัญชีอยู่แล้ว? <a href="/">Back to Login</a></p>
         </form>
     </main>
     <script>
-        const form = document.querySelector('#registerForm'), error = document.querySelector('#error'); form.addEventListener('submit', async (e) => { e.preventDefault(); error.classList.remove('show'); if (password.value !== confirmPassword.value) { error.textContent = 'Password และ Confirm Password ไม่ตรงกัน'; error.classList.add('show'); return } const b = form.querySelector('button'); b.disabled = true; b.textContent = 'กำลังสร้างบัญชี...'; try { const r = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: username.value.trim(), email: email.value.trim(), password: password.value }) }); const d = await r.json(); if (!r.ok) throw new Error(d.message); localStorage.setItem('lockerToken', d.token); location.href = '/rfid-enroll.html' } catch (e) { error.textContent = e.message || 'สร้างบัญชีไม่สำเร็จ'; error.classList.add('show') } finally { b.disabled = false; b.textContent = 'Create Account' } });
+        const form = document.querySelector('#registerForm');
+        const error = document.querySelector('#error');
+        const username = document.getElementById('username');
+        const email = document.getElementById('email');
+        const password = document.getElementById('password');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const toggleButtons = document.querySelectorAll('.toggle-password');
+
+        toggleButtons.forEach((button) => {
+            const targetId = button.dataset.target;
+            const targetInput = document.getElementById(targetId);
+            button.addEventListener('click', () => {
+                const isPassword = targetInput.type === 'password';
+                targetInput.type = isPassword ? 'text' : 'password';
+                button.textContent = isPassword ? 'ซ่อน' : 'แสดง';
+            });
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            error.classList.remove('show');
+            if (password.value !== confirmPassword.value) {
+                error.textContent = 'Password และ Confirm Password ไม่ตรงกัน';
+                error.classList.add('show');
+                return;
+            }
+            const b = form.querySelector('button[type=submit]');
+            b.disabled = true;
+            b.textContent = 'กำลังสร้างบัญชี...';
+            try {
+                const r = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username.value.trim(), email: email.value.trim(), password: password.value }),
+                });
+                const d = await r.json();
+                if (!r.ok) throw new Error(d.message);
+                localStorage.setItem('lockerToken', d.token);
+                localStorage.setItem('rfidExpiresAt', d.expiresAt || '');
+                location.href = '/rfid-enroll.html';
+            } catch (e) {
+                error.textContent = e.message || 'สร้างบัญชีไม่สำเร็จ';
+                error.classList.add('show');
+            } finally {
+                b.disabled = false;
+                b.textContent = 'Create Account';
+            }
+        });
     </script>
 </body>
 

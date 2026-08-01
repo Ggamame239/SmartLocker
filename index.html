@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap"
     rel="stylesheet">
   <style>
     :root {
@@ -25,7 +25,7 @@
 
     body {
       margin: 0;
-      font-family: "Noto Sans Thai", sans-serif;
+      font-family: "Prompt", sans-serif;
       background: #f6eedb;
       color: var(--ink)
     }
@@ -63,22 +63,7 @@
       color: #fff3d1;
       background: #b6382a;
       border: 5px double #f5ca75;
-      font-family: "DM Serif Display", serif;
-      font-size: 17px
-    }
-
-        .seal img { width: 100%; height: 100%; display: block; object-fit: contain }
-
-    .login h1 {
-      font-family: "DM Serif Display", serif;
-      text-align: center;
-      font-size: 32px;
-      margin: 22px 0 24px
-    }
-
-    .login label {
-      display: block;
-      font-family: "DM Serif Display", serif;
+      font-family: "Prompt", sans-serif;
       font-size: 15px;
       margin: 14px 0 6px
     }
@@ -117,6 +102,34 @@
       text-decoration: none
     }
 
+    .field-group {
+      position: relative;
+      margin-bottom: 12px;
+    }
+
+    .field-group .field-with-icon {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toggle-password {
+      border: 1px solid rgba(135, 55, 219, .35);
+      background: #fff;
+      color: var(--purple);
+      font: 500 12px "Prompt", sans-serif;
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: 999px;
+      transition: transform .15s ease, background .15s ease, box-shadow .15s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+
+    .toggle-password:hover {
+      background: #f8f2ff;
+      transform: translateY(-1px);
+    }
+
     .submit {
       width: 100%;
       border: 0;
@@ -124,12 +137,16 @@
       background: #3c301c;
       color: #fff8e9;
       padding: 12px;
-      font: 600 19px "DM Serif Display", serif;
-      cursor: pointer
+      font: 600 19px "Prompt", sans-serif;
+      cursor: pointer;
+      box-shadow: 0 12px 24px rgba(60, 48, 28, .18);
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
     }
 
     .submit:hover {
-      background: #624b2d
+      background: #624b2d;
+      transform: translateY(-1px);
+      box-shadow: 0 14px 28px rgba(60, 48, 28, .22);
     }
 
     .note {
@@ -163,7 +180,18 @@
       border: 0;
       color: white;
       background: #ad8b63;
-      font: 27px "DM Serif Display", serif
+      font: 700 27px "Prompt", sans-serif;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 8px 22px rgba(0,0,0,.15);
+      cursor: pointer;
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    .help:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 26px rgba(0,0,0,.18);
+      background: #c0915d;
     }
 
     @media(max-width:450px) {
@@ -187,16 +215,37 @@
     }
 
     .signup {
-      display: block;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
       text-align: center;
       margin-top: 18px;
       font-size: 12px;
-      color: #685642
+      color: #685642;
+      font-family: "Prompt", sans-serif;
+      font-weight: 500;
     }
 
     .signup a {
-      font-weight: 700;
-      color: var(--wood)
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 150px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid rgba(78, 50, 30, .15);
+      color: var(--wood);
+      font: 700 12px "Prompt", sans-serif;
+      text-decoration: none;
+      box-shadow: 0 10px 24px rgba(0,0,0,.08);
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    .signup a:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 28px rgba(0,0,0,.12);
+      background: #f7f2ea;
     }
   </style>
 </head>
@@ -204,10 +253,17 @@
 <body>
   <main class="page"><button class="help" title="ติดต่อผู้ดูแล">?</button>
     <form class="login" id="loginForm">
-            <div class="seal"><img src="/assets/logo.svg" alt="Smart Locker logo"></div>
-      <h1>Login</h1><label for="identifier">Username หรือ Email</label><input id="identifier" type="text"
-        autocomplete="username" required><label for="password">Password</label><input id="password" type="password"
-        autocomplete="current-password" required>
+      <div class="seal"><img src="/assets/logo.svg" alt="Smart Locker logo"></div>
+      <h1>Login</h1>
+      <label for="identifier">Username หรือ Email</label>
+      <input id="identifier" type="text" autocomplete="username" required>
+      <div class="field-group">
+        <label for="password">Password</label>
+        <div class="field-with-icon">
+          <input id="password" type="password" autocomplete="current-password" required>
+          <button type="button" class="toggle-password" data-target="password">แสดง</button>
+        </div>
+      </div>
       <div class="options"><label><input type="checkbox"> Remember me</label><a href="#">Forgot password?</a></div>
       <button class="submit" type="submit">Login</button>
       <p class="error" id="error"></p>
@@ -215,8 +271,46 @@
     </form>
   </main>
   <script>
-    const form = document.querySelector('#loginForm'), error = document.querySelector('#error');
-    form.addEventListener('submit', async e => { e.preventDefault(); error.classList.remove('show'); const button = form.querySelector('button[type=submit]'); button.textContent = 'กำลังเข้าสู่ระบบ...'; button.disabled = true; try { const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifier: identifier.value.trim(), password: password.value }) }); const data = await res.json(); if (!res.ok) throw new Error(data.message); localStorage.setItem('lockerToken', data.token); location.href = data.next === 'rfid' ? '/rfid-enroll.html' : '/dashboard.html' } catch (err) { error.textContent = err.message || 'เข้าสู่ระบบไม่สำเร็จ'; error.classList.add('show') } finally { button.textContent = 'Login'; button.disabled = false } });
+    const form = document.querySelector('#loginForm');
+    const error = document.querySelector('#error');
+    const identifierInput = document.getElementById('identifier');
+    const passwordInput = document.getElementById('password');
+    const toggleButtons = document.querySelectorAll('.toggle-password');
+
+    toggleButtons.forEach((button) => {
+      const targetId = button.dataset.target;
+      const targetInput = document.getElementById(targetId);
+      button.addEventListener('click', () => {
+        const isPassword = targetInput.type === 'password';
+        targetInput.type = isPassword ? 'text' : 'password';
+        button.textContent = isPassword ? 'ซ่อน' : 'แสดง';
+      });
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      error.classList.remove('show');
+      const button = form.querySelector('button[type=submit]');
+      button.textContent = 'กำลังเข้าสู่ระบบ...';
+      button.disabled = true;
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier: identifierInput.value.trim(), password: passwordInput.value }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        localStorage.setItem('lockerToken', data.token);
+        location.href = data.next === 'rfid' ? '/rfid-enroll.html' : '/dashboard.html';
+      } catch (err) {
+        error.textContent = err.message || 'เข้าสู่ระบบไม่สำเร็จ';
+        error.classList.add('show');
+      } finally {
+        button.textContent = 'Login';
+        button.disabled = false;
+      }
+    });
   </script>
 </body>
 

@@ -12,7 +12,7 @@
 
     body {
       margin: 0;
-      font-family: system-ui, "Noto Sans Thai", sans-serif;
+      font-family: "Prompt", sans-serif;
       color: #3c2e1c
     }
 
@@ -47,7 +47,8 @@
     }
 
     .card h1 {
-      font-family: Georgia, serif;
+      font-family: "Prompt", sans-serif;
+      font-weight: 700;
       font-size: 32px;
       margin: 0 0 9px
     }
@@ -79,6 +80,25 @@
       animation: pulse 1.4s infinite
     }
 
+    .timer {
+      margin-top: 16px;
+      font-size: 14px;
+      color: #4a3a25;
+    }
+
+    .timer strong {
+      display: inline-block;
+      min-width: 32px;
+      text-align: center;
+      font-size: 22px;
+      color: #2d5f3f;
+      transition: transform 0.18s ease;
+    }
+
+    .timer strong.tick {
+      transform: scale(1.1);
+    }
+
     @keyframes pulse {
       70% {
         box-shadow: 0 0 0 9px transparent
@@ -92,11 +112,20 @@
     button {
       margin-top: 25px;
       border: 0;
-      background: transparent;
-      color: #765d40;
-      text-decoration: underline;
-      font: 12px inherit;
-      cursor: pointer
+      border-radius: 999px;
+      background: #3c301c;
+      color: #fff8e9;
+      padding: 12px 18px;
+      font: 600 13px "Prompt", sans-serif;
+      cursor: pointer;
+      box-shadow: 0 14px 30px rgba(0,0,0,.16);
+      transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+    }
+
+    button:hover {
+      background: #2f2516;
+      transform: translateY(-1px);
+      box-shadow: 0 16px 32px rgba(0,0,0,.2);
     }
   </style>
 </head>
@@ -107,14 +136,68 @@
       <div class="icon">◉</div>
       <h1>ยืนยันบัตร RFID</h1>
       <p>โปรดนำบัตรไปแตะที่ตู้ RFID<br>ระบบจะยืนยันบัญชีของคุณโดยอัตโนมัติ</p>
-      <div class="waiting"><i class="pulse"></i><span id="status">กำลังรอการแตะบัตร…</span></div><button
-        id="cancel">กลับไปหน้าเข้าสู่ระบบ</button>
+      <div class="waiting"><i class="pulse"></i><span id="status">กำลังรอการแตะบัตร…</span></div>
+    <div class="timer">เหลือเวลา <strong id="countdown">60</strong> วินาที</div>
+    <button id="cancel">กลับไปหน้าเข้าสู่ระบบ</button>
     </section>
   </main>
   <script>
-    const token = localStorage.getItem('lockerToken'); if (!token) location.replace('/');
-    async function check() { try { const r = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } }); const d = await r.json(); if (!r.ok) throw Error(d.message); if (d.profile.rfidStatus === 'verified') { status.textContent = 'ยืนยันบัตรสำเร็จ กำลังเข้าสู่ระบบ…'; setTimeout(() => location.replace('/dashboard.html'), 700) } } catch (e) { status.textContent = e.message } }
-    check(); const timer = setInterval(check, 2500); cancel.onclick = () => { clearInterval(timer); localStorage.removeItem('lockerToken'); location.href = '/' };
+    const token = localStorage.getItem('lockerToken');
+    const countdownEl = document.getElementById('countdown');
+    const statusEl = document.getElementById('status');
+    let timeoutId;
+    let tickTimeout;
+    let lastRemaining = null;
+
+    if (!token) location.replace('/');
+
+    function renderCountdown(expiresAt) {
+      const remaining = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+      if (remaining !== lastRemaining) {
+        countdownEl.textContent = remaining;
+        countdownEl.classList.add('tick');
+        clearTimeout(tickTimeout);
+        tickTimeout = setTimeout(() => countdownEl.classList.remove('tick'), 180);
+        lastRemaining = remaining;
+      }
+
+      if (remaining <= 0) {
+        statusEl.textContent = 'หมดเวลายืนยันตัวตน กรุณาลงทะเบียนใหม่';
+        clearInterval(timeoutId);
+        return false;
+      }
+      return true;
+    }
+
+    async function check() {
+      try {
+        const r = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });
+        const d = await r.json();
+        if (!r.ok) throw Error(d.message);
+
+        const expiresAt = d.profile.rfidExpiresAt || Number(localStorage.getItem('rfidExpiresAt'));
+        if (expiresAt && !renderCountdown(expiresAt)) return;
+
+        if (d.profile.rfidStatus === 'verified') {
+          statusEl.textContent = 'ยืนยันบัตรสำเร็จ กำลังเข้าสู่ระบบ…';
+          clearInterval(timeoutId);
+          setTimeout(() => location.replace('/dashboard.html'), 700);
+        }
+      } catch (e) {
+        statusEl.textContent = e.message || 'เกิดข้อผิดพลาด';
+      }
+    }
+
+    check();
+    const countdownInterval = 250;
+    timeoutId = setInterval(check, countdownInterval);
+    cancel.onclick = () => {
+      clearInterval(timeoutId);
+      clearTimeout(tickTimeout);
+      localStorage.removeItem('lockerToken');
+      localStorage.removeItem('rfidExpiresAt');
+      location.href = '/';
+    };
   </script>
 </body>
 

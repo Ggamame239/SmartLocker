@@ -5,6 +5,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Smart Locker Control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --wood: #4d321d;
@@ -19,7 +22,7 @@
 
     body {
       margin: 0;
-      font-family: system-ui, "Noto Sans Thai", sans-serif;
+      font-family: "Prompt", sans-serif;
       color: var(--ink);
       background: repeating-linear-gradient(90deg, #4c301c 0 9px, #573820 9px 15px)
     }
@@ -35,24 +38,32 @@
     }
 
     .brand {
-      font: 25px Georgia, serif
+      font: 700 25px "Prompt", sans-serif;
     }
 
     .brand small {
       display: block;
-      font: 9px system-ui, sans-serif;
+      font: 500 9px "Prompt", sans-serif;
       letter-spacing: 1.5px;
       color: #e9cd96
     }
 
     header button {
-      border: 1px solid #ffffff50;
-      border-radius: 8px;
-      background: transparent;
+      border: 1px solid rgba(255,255,255,.45);
+      border-radius: 14px;
+      background: rgba(255,255,255,.08);
       color: #fff8e8;
-      padding: 7px 10px;
-      font: 12px inherit;
-      cursor: pointer
+      padding: 11px 16px;
+      font: 600 12px "Prompt", sans-serif;
+      cursor: pointer;
+      box-shadow: 0 10px 28px rgba(0,0,0,.12);
+      transition: transform .15s ease, background .15s ease, box-shadow .15s ease;
+    }
+
+    header button:hover {
+      background: rgba(255,255,255,.13);
+      transform: translateY(-1px);
+      box-shadow: 0 12px 32px rgba(0,0,0,.16);
     }
 
     main {
@@ -75,7 +86,7 @@
     }
 
     .intro h1 {
-      font: 42px Georgia, serif;
+      font: 700 42px "Prompt", sans-serif;
       margin: 4px 0
     }
 
@@ -162,7 +173,7 @@
     }
 
     .content h2 {
-      font: 26px Georgia, serif;
+      font: 700 26px "Prompt", sans-serif;
       margin: 0 0 18px
     }
 
