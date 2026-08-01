@@ -342,11 +342,80 @@
     </section>
   </main>
   <script>
-    const token = localStorage.getItem('lockerToken'); if (!token) location.replace('/'); const lockers = document.querySelector('#lockers'), message = document.querySelector('#message');
-    async function request(url, opts = {}) { const r = await fetch(url, { ...opts, headers: { ...opts.headers, Authorization: `Bearer ${token}` } }); const d = await r.json(); if (r.status === 401) { localStorage.removeItem('lockerToken'); location.replace('/') } if (!r.ok) throw new Error(d.message); return d }
-    function draw(data) { lockers.innerHTML = ''; const entries = Object.entries(data); if (!entries.length) { lockers.innerHTML = '<p class="empty">คุณยังไม่ได้เป็นเจ้าของล็อกเกอร์</p>'; return } for (const [id, locker] of entries) { const open = locker.state === 'open'; lockers.insertAdjacentHTML('beforeend', `<article class="locker ${open ? 'open' : ''}"><div class="top"><b class="number">${String(id).padStart(2, '0')}</b><span class="badge">${open ? 'เปิดอยู่' : 'ล็อกอยู่'}</span></div><h3>ล็อกเกอร์ช่อง ${id}</h3><p>${open ? 'กรุณาปิดประตูหลังใช้งาน' : 'พร้อมให้บริการ'}</p><button class="control" data-id="${id}" data-action="${open ? 'lock' : 'unlock'}">${open ? 'ล็อกช่องนี้' : 'ปลดล็อกช่องนี้'}</button></article>`) } document.querySelectorAll('.control').forEach(b => b.onclick = () => command(b.dataset.id, b.dataset.action)) }
-    async function command(lockerId, action) { try { message.textContent = 'กำลังส่งคำสั่งไป ESP32...'; const d = await request('/api/lockers/' + lockerId, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) }); draw(d.lockers); message.textContent = `ส่งคำสั่ง ${action === 'unlock' ? 'เปิด' : 'ล็อก'} ช่อง ${lockerId} แล้ว` } catch (e) { message.textContent = e.message } }
-    request('/api/me').then(d => { if (d.profile.rfidStatus === 'pending') { location.replace('/rfid-enroll.html'); return } accountName.textContent = d.profile.username || d.profile.email || 'บัญชีผู้ใช้'; const verified = d.profile.rfidStatus === 'verified'; rfidState.textContent = 'สถานะบัตร: ' + (verified ? 'ยืนยัน RFID แล้ว' : 'ยังไม่ได้ยืนยัน RFID'); rfidState.classList.toggle('verified', verified); ownership.textContent = 'เจ้าของล็อกเกอร์: ' + (d.ownedLockerIds.length ? d.ownedLockerIds.map(id => 'ช่อง ' + id).join(', ') : 'ไม่มี') }).catch(e => message.textContent = e.message); request('/api/lockers').then(d => { draw(d.lockers); message.textContent = 'เชื่อมต่อ Firebase สำเร็จ' }).catch(e => message.textContent = e.message); logout.onclick = () => { localStorage.removeItem('lockerToken'); location.href = '/' };
+    // ดึง token จาก localStorage เพื่อส่ง header Authorization
+    const token = localStorage.getItem('lockerToken');
+    if (!token) location.replace('/');
+
+    const lockers = document.querySelector('#lockers');
+    const message = document.querySelector('#message');
+
+    // wrapper สำหรับเรียกใช้งาน API พร้อม Bearer token
+    async function request(url, opts = {}) {
+      const r = await fetch(url, { ...opts, headers: { ...opts.headers, Authorization: `Bearer ${token}` } });
+      const d = await r.json();
+      if (r.status === 401) {
+        localStorage.removeItem('lockerToken');
+        location.replace('/');
+      }
+      if (!r.ok) throw new Error(d.message);
+      return d;
+    }
+
+    // วาดรายการล็อกเกอร์บนหน้า dashboard
+    function draw(data) {
+      lockers.innerHTML = '';
+      const entries = Object.entries(data);
+      if (!entries.length) {
+        lockers.innerHTML = '<p class="empty">คุณยังไม่ได้เป็นเจ้าของล็อกเกอร์</p>';
+        return;
+      }
+      for (const [id, locker] of entries) {
+        const open = locker.state === 'open';
+        lockers.insertAdjacentHTML('beforeend', `<article class="locker ${open ? 'open' : ''}"><div class="top"><b class="number">${String(id).padStart(2, '0')}</b><span class="badge">${open ? 'เปิดอยู่' : 'ล็อกอยู่'}</span></div><h3>ล็อกเกอร์ช่อง ${id}</h3><p>${open ? 'กรุณาปิดประตูหลังใช้งาน' : 'พร้อมให้บริการ'}</p><button class="control" data-id="${id}" data-action="${open ? 'lock' : 'unlock'}">${open ? 'ล็อกช่องนี้' : 'ปลดล็อกช่องนี้'}</button></article>`);
+      }
+      document.querySelectorAll('.control').forEach(b => b.onclick = () => command(b.dataset.id, b.dataset.action));
+    }
+
+    // ส่งคำสั่งล็อกหรือปลดล็อกให้ backend
+    async function command(lockerId, action) {
+      try {
+        message.textContent = 'กำลังส่งคำสั่งไป ESP32...';
+        const d = await request('/api/lockers/' + lockerId, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action }),
+        });
+        draw(d.lockers);
+        message.textContent = `ส่งคำสั่ง ${action === 'unlock' ? 'เปิด' : 'ล็อก'} ช่อง ${lockerId} แล้ว`;
+      } catch (e) {
+        message.textContent = e.message;
+      }
+    }
+
+    // อ่านข้อมูลผู้ใช้ เพื่อแสดงสถานะและตรวจสอบ RFID
+    request('/api/me').then(d => {
+      if (d.profile.rfidStatus === 'pending') {
+        location.replace('/rfid-enroll.html');
+        return;
+      }
+      accountName.textContent = d.profile.username || d.profile.email || 'บัญชีผู้ใช้';
+      const verified = d.profile.rfidStatus === 'verified';
+      rfidState.textContent = 'สถานะบัตร: ' + (verified ? 'ยืนยัน RFID แล้ว' : 'ยังไม่ได้ยืนยัน RFID');
+      rfidState.classList.toggle('verified', verified);
+      ownership.textContent = 'เจ้าของล็อกเกอร์: ' + (d.ownedLockerIds.length ? d.ownedLockerIds.map(id => 'ช่อง ' + id).join(', ') : 'ไม่มี');
+    }).catch(e => message.textContent = e.message);
+
+    // อ่านสถานะล็อกเกอร์อีกครั้งหลัง login
+    request('/api/lockers').then(d => {
+      draw(d.lockers);
+      message.textContent = 'เชื่อมต่อ Firebase สำเร็จ';
+    }).catch(e => message.textContent = e.message);
+
+    // logout ล้าง token แล้วกลับหน้า login
+    logout.onclick = () => {
+      localStorage.removeItem('lockerToken');
+      location.href = '/';
+    };
   </script>
 </body>
 

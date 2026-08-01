@@ -142,6 +142,7 @@
     </section>
   </main>
   <script>
+    // ดึง token สำหรับ session ของผู้ใช้จาก localStorage
     const token = localStorage.getItem('lockerToken');
     const countdownEl = document.getElementById('countdown');
     const statusEl = document.getElementById('status');
@@ -169,6 +170,7 @@
       return true;
     }
 
+    // ตรวจสถานะการยืนยัน RFID กับ backend ทุกช่วงเวลา
     async function check() {
       try {
         const r = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } });

@@ -242,6 +242,7 @@
         const confirmPassword = document.getElementById('confirmPassword');
         const toggleButtons = document.querySelectorAll('.toggle-password');
 
+        // ปุ่มแสดง/ซ่อนรหัสผ่าน
         toggleButtons.forEach((button) => {
             const targetId = button.dataset.target;
             const targetInput = document.getElementById(targetId);
@@ -252,6 +253,7 @@
             });
         });
 
+        // ส่งฟอร์มสมัครสมาชิกไปยัง backend
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             error.classList.remove('show');
@@ -271,6 +273,7 @@
                 });
                 const d = await r.json();
                 if (!r.ok) throw new Error(d.message);
+                // เก็บ token เพื่อใช้งานต่อในหน้าของระบบ
                 localStorage.setItem('lockerToken', d.token);
                 localStorage.setItem('rfidExpiresAt', d.expiresAt || '');
                 location.href = '/rfid-enroll.html';
