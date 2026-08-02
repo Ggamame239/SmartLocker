@@ -32,6 +32,34 @@ app.get('/owner', (req, res) => {
 const FALLBACK_DEVICE_API_KEY = '8f4d1a9b7c6e2f0d5a8c3b1e9f7d6c4a2b8e5f1c9d7a3b6e4f0a1c8d5b2e7f9';
 const DEVICE_API_KEY = String(process.env.DEVICE_API_KEY || FALLBACK_DEVICE_API_KEY).trim();
 
+// Helper: check whether an incoming key matches any locker or machine-specific key
+async function findMatchingHardwareKey(incomingKey) {
+  const key = String(incomingKey || '').trim();
+  if (!key) return null;
+  try {
+    // check lockers
+    const lockerSnap = await admin.database().ref('lockers').get();
+    const lockers = lockerSnap.val() || {};
+    for (const [lk, lv] of Object.entries(lockers)) {
+      if (!lv) continue;
+      const candidate = String(lv.deviceKey || lv.lockerKey || '').trim();
+      if (candidate && candidate === key) return { type: 'locker', id: lk, item: lv };
+    }
+
+    // check machines
+    const machineSnap = await admin.database().ref('machines').get();
+    const machines = machineSnap.val() || {};
+    for (const [mk, mv] of Object.entries(machines)) {
+      if (!mv) continue;
+      const candidate = String(mv.deviceKey || mv.serverKey || '').trim();
+      if (candidate && candidate === key) return { type: 'machine', id: mk, item: mv };
+    }
+  } catch (e) {
+    console.error('findMatchingHardwareKey error', e);
+  }
+  return null;
+}
+
 // ให้บริการไฟล์สเตติกจาก public และหน้า index ของรากโฟลเดอร์
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname, { index: 'index.html', extensions: ['html'] }));
@@ -399,6 +427,7 @@ app.post('/api/rfid/scan', async (req, res) => {
   // ตรวจสอบ Device Key เพื่อให้เฉพาะฮาร์ดแวร์ที่อนุญาตเข้าถึงได้
   const expectedDeviceKey = DEVICE_API_KEY;
   const incomingDeviceKey = String(req.headers['x-device-key'] || req.headers['X-Device-Key'] || '').trim();
+
   // also accept a device key stored in the realtime DB under server/deviceApiKey
   let dbDeviceKey = null;
   try {
@@ -407,13 +436,33 @@ app.post('/api/rfid/scan', async (req, res) => {
   } catch (e) {
     console.error('Error reading server/deviceApiKey from DB', e);
   }
-  const deviceKeyMatches = expectedDeviceKey && incomingDeviceKey && (
-    incomingDeviceKey === expectedDeviceKey || incomingDeviceKey === `DEVICE_API_KEY=${expectedDeviceKey}` || (dbDeviceKey && (incomingDeviceKey === dbDeviceKey || incomingDeviceKey === `DEVICE_API_KEY=${dbDeviceKey}`))
-  );
+
+  // accept: global env key, server/deviceApiKey, OR any locker/machine-specific key stored in DB
+  let matchedHardware = null;
+  let deviceKeyMatches = false;
+  if (expectedDeviceKey && incomingDeviceKey) {
+    if (incomingDeviceKey === expectedDeviceKey || incomingDeviceKey === `DEVICE_API_KEY=${expectedDeviceKey}`) deviceKeyMatches = true;
+  }
+  if (!deviceKeyMatches && dbDeviceKey && incomingDeviceKey) {
+    if (incomingDeviceKey === dbDeviceKey || incomingDeviceKey === `DEVICE_API_KEY=${dbDeviceKey}`) deviceKeyMatches = true;
+  }
+  if (!deviceKeyMatches && incomingDeviceKey) {
+    try {
+      const matched = await findMatchingHardwareKey(incomingDeviceKey);
+      if (matched) {
+        deviceKeyMatches = true;
+        matchedHardware = matched;
+      }
+    } catch (e) {
+      console.error('Error matching hardware key', e);
+    }
+  }
 
   if (!deviceKeyMatches) {
     return res.status(401).json({ message: 'Device key ไม่ถูกต้อง' });
   }
+
+  if (matchedHardware) console.log('Matched hardware key for', matchedHardware.type, matchedHardware.id);
 
   const cardUid = String(req.body?.cardUid || '').trim().replace(/[^a-zA-Z0-9_-]/g, '').toUpperCase();
   if (cardUid.length < 4) return res.status(400).json({ message: 'RFID card UID ไม่ถูกต้อง' });
