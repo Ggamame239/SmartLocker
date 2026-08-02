@@ -480,6 +480,16 @@ app.post('/api/rfid/scan', async (req, res) => {
   }
 });
 
+app.get('/api/lockers', authenticate, async (req, res) => {
+  try {
+    const value = (await admin.database().ref('lockers').get()).val() || {};
+    const owned = Object.fromEntries(Object.entries(value).filter(([, locker]) => locker?.ownerUid === req.user.uid));
+    res.json({ lockers: owned });
+  } catch {
+    res.status(500).json({ message: 'อ่านข้อมูลล็อกเกอร์ไม่สำเร็จ' });
+  }
+});
+
 // ควบคุมล็อกเกอร์ทั้งล็อคและปลดล็อคโดยผู้ใช้ที่เป็นเจ้าของ
 app.post('/api/lockers/:id', authenticate, async (req, res) => {
   const id = Number(req.params.id);
