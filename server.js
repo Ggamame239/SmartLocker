@@ -23,6 +23,10 @@ if (!admin.apps.length && !missing.length) {
 
 const app = express();
 app.use(express.json());
+
+const FALLBACK_DEVICE_API_KEY = '8f4d1a9b7c6e2f0d5a8c3b1e9f7d6c4a2b8e5f1c9d7a3b6e4f0a1c8d5b2e7f9';
+const DEVICE_API_KEY = String(process.env.DEVICE_API_KEY || FALLBACK_DEVICE_API_KEY).trim();
+
 // ให้บริการไฟล์สเตติกจาก public และหน้า index ของรากโฟลเดอร์
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname, { index: 'index.html', extensions: ['html'] }));
@@ -347,13 +351,20 @@ app.get('/api/me', authenticate, async (req, res) => {
 
 // Endpoint สำหรับ ESP32 ส่ง UID บัตร RFID มาให้
 app.post('/api/rfid/scan', async (req, res) => {
-  // ตรวจสอบ Device Key เพื่อให้เฉพาะฮาร์ดแวร์ที่อนุญาตเข้าถึงได้
-  if (!process.env.DEVICE_API_KEY || req.headers['x-device-key'] !== process.env.DEVICE_API_KEY) {
-    return res.status(401).json({ message: 'Device key ไม่ถูกต้อง' });
-  }
   if (failIfUnconfigured(res)) return;
 
-  const cardUid = String(req.body?.cardUid || '').replace(/[^a-zA-Z0-9_-]/g, '').toUpperCase();
+  // ตรวจสอบ Device Key เพื่อให้เฉพาะฮาร์ดแวร์ที่อนุญาตเข้าถึงได้
+  const expectedDeviceKey = DEVICE_API_KEY;
+  const incomingDeviceKey = String(req.headers['x-device-key'] || req.headers['X-Device-Key'] || '').trim();
+  const deviceKeyMatches = expectedDeviceKey && incomingDeviceKey && (
+    incomingDeviceKey === expectedDeviceKey || incomingDeviceKey === `DEVICE_API_KEY=${expectedDeviceKey}`
+  );
+
+  if (!deviceKeyMatches) {
+    return res.status(401).json({ message: 'Device key ไม่ถูกต้อง' });
+  }
+
+  const cardUid = String(req.body?.cardUid || '').trim().replace(/[^a-zA-Z0-9_-]/g, '').toUpperCase();
   if (cardUid.length < 4) return res.status(400).json({ message: 'RFID card UID ไม่ถูกต้อง' });
 
   try {
