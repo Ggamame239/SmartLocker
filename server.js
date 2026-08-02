@@ -24,6 +24,11 @@ if (!admin.apps.length && !missing.length) {
 const app = express();
 app.use(express.json());
 
+// Ensure /owner serves the owner SPA even when static middleware runs earlier
+app.get('/owner', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'owner.html'));
+});
+
 const FALLBACK_DEVICE_API_KEY = '8f4d1a9b7c6e2f0d5a8c3b1e9f7d6c4a2b8e5f1c9d7a3b6e4f0a1c8d5b2e7f9';
 const DEVICE_API_KEY = String(process.env.DEVICE_API_KEY || FALLBACK_DEVICE_API_KEY).trim();
 
