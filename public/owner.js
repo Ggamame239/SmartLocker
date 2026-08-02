@@ -87,7 +87,17 @@ document.getElementById('importDb').onclick = async ()=>{
 
 // initialize when owner authenticated
 async function initIfAuth(){
-  try{ await loadDashboard(); await loadMachines(); await loadLockers(); await loadUsers(); await loadDevices(); }catch(e){ console.warn('Not authenticated or load error',e) }
+  try{
+    await loadDashboard();
+    await loadMachines();
+    await loadLockers();
+    await loadUsers();
+    await loadDevices();
+  }catch(e){
+    // If owner API returns unauthorized, redirect to owner login page
+    try{ if (e.message && (e.message.toLowerCase().includes('owner not authenticated') || e.message.toLowerCase().includes('session'))) { location.href = '/owner-login.html'; return } }catch(_){}
+    console.warn('Not authenticated or load error',e)
+  }
 }
 
 // Try to load dashboard on open (if session exists)
