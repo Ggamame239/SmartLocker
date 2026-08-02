@@ -24,41 +24,8 @@ if (!admin.apps.length && !missing.length) {
 const app = express();
 app.use(express.json());
 
-// Ensure /owner serves the owner SPA even when static middleware runs earlier
-app.get('/owner', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'owner.html'));
-});
-
 const FALLBACK_DEVICE_API_KEY = '8f4d1a9b7c6e2f0d5a8c3b1e9f7d6c4a2b8e5f1c9d7a3b6e4f0a1c8d5b2e7f9';
 const DEVICE_API_KEY = String(process.env.DEVICE_API_KEY || FALLBACK_DEVICE_API_KEY).trim();
-
-// Helper: check whether an incoming key matches any locker or machine-specific key
-async function findMatchingHardwareKey(incomingKey) {
-  const key = String(incomingKey || '').trim();
-  if (!key) return null;
-  try {
-    // check lockers
-    const lockerSnap = await admin.database().ref('lockers').get();
-    const lockers = lockerSnap.val() || {};
-    for (const [lk, lv] of Object.entries(lockers)) {
-      if (!lv) continue;
-      const candidate = String(lv.deviceKey || lv.lockerKey || '').trim();
-      if (candidate && candidate === key) return { type: 'locker', id: lk, item: lv };
-    }
-
-    // check machines
-    const machineSnap = await admin.database().ref('machines').get();
-    const machines = machineSnap.val() || {};
-    for (const [mk, mv] of Object.entries(machines)) {
-      if (!mv) continue;
-      const candidate = String(mv.deviceKey || mv.serverKey || '').trim();
-      if (candidate && candidate === key) return { type: 'machine', id: mk, item: mv };
-    }
-  } catch (e) {
-    console.error('findMatchingHardwareKey error', e);
-  }
-  return null;
-}
 
 // ให้บริการไฟล์สเตติกจาก public และหน้า index ของรากโฟลเดอร์
 app.use(express.static(path.join(__dirname, 'public')));
@@ -427,7 +394,6 @@ app.post('/api/rfid/scan', async (req, res) => {
   // ตรวจสอบ Device Key เพื่อให้เฉพาะฮาร์ดแวร์ที่อนุญาตเข้าถึงได้
   const expectedDeviceKey = DEVICE_API_KEY;
   const incomingDeviceKey = String(req.headers['x-device-key'] || req.headers['X-Device-Key'] || '').trim();
-
   // also accept a device key stored in the realtime DB under server/deviceApiKey
   let dbDeviceKey = null;
   try {
@@ -436,33 +402,13 @@ app.post('/api/rfid/scan', async (req, res) => {
   } catch (e) {
     console.error('Error reading server/deviceApiKey from DB', e);
   }
-
-  // accept: global env key, server/deviceApiKey, OR any locker/machine-specific key stored in DB
-  let matchedHardware = null;
-  let deviceKeyMatches = false;
-  if (expectedDeviceKey && incomingDeviceKey) {
-    if (incomingDeviceKey === expectedDeviceKey || incomingDeviceKey === `DEVICE_API_KEY=${expectedDeviceKey}`) deviceKeyMatches = true;
-  }
-  if (!deviceKeyMatches && dbDeviceKey && incomingDeviceKey) {
-    if (incomingDeviceKey === dbDeviceKey || incomingDeviceKey === `DEVICE_API_KEY=${dbDeviceKey}`) deviceKeyMatches = true;
-  }
-  if (!deviceKeyMatches && incomingDeviceKey) {
-    try {
-      const matched = await findMatchingHardwareKey(incomingDeviceKey);
-      if (matched) {
-        deviceKeyMatches = true;
-        matchedHardware = matched;
-      }
-    } catch (e) {
-      console.error('Error matching hardware key', e);
-    }
-  }
+  const deviceKeyMatches = expectedDeviceKey && incomingDeviceKey && (
+    incomingDeviceKey === expectedDeviceKey || incomingDeviceKey === `DEVICE_API_KEY=${expectedDeviceKey}` || (dbDeviceKey && (incomingDeviceKey === dbDeviceKey || incomingDeviceKey === `DEVICE_API_KEY=${dbDeviceKey}`))
+  );
 
   if (!deviceKeyMatches) {
     return res.status(401).json({ message: 'Device key ไม่ถูกต้อง' });
   }
-
-  if (matchedHardware) console.log('Matched hardware key for', matchedHardware.type, matchedHardware.id);
 
   const cardUid = String(req.body?.cardUid || '').trim().replace(/[^a-zA-Z0-9_-]/g, '').toUpperCase();
   if (cardUid.length < 4) return res.status(400).json({ message: 'RFID card UID ไม่ถูกต้อง' });
@@ -545,171 +491,6 @@ app.post('/api/lockers/:id', authenticate, async (req, res) => {
 });
 
 // เริ่มต้นเซิร์ฟเวอร์ และตั้ง timeout เพื่อลบบัญชีที่รอ RFID เกินเวลา
-
-// -------------------- Owner routes & APIs --------------------
-
-// Owner login - credentials stored in Realtime DB under `owners/{username}` with field `password`
-app.post('/owner/login', async (req, res) => {
-  if (failIfUnconfigured(res)) return;
-  const { username, password, deviceKey } = req.body || {};
-
-  // If deviceKey is provided, authenticate via the server/deviceApiKey or env fallback
-  if (deviceKey) {
-    try {
-      const incoming = String(deviceKey || '').trim();
-      const expectedEnv = DEVICE_API_KEY;
-      let dbKey = null;
-      try {
-        const snap = await admin.database().ref('server/deviceApiKey').get();
-        if (snap.exists()) dbKey = String(snap.val()).trim();
-      } catch (e) {
-        console.error('Error reading server/deviceApiKey', e);
-      }
-
-      if (incoming && (incoming === expectedEnv || (dbKey && incoming === dbKey))) {
-        const token = crypto.randomBytes(32).toString('hex');
-        ownerSessions.set(token, { username: 'device-owner', expiresAt: Date.now() + OWNER_SESSION_TTL });
-        res.setHeader('Set-Cookie', `ownerSession=${token}; HttpOnly; Path=/; Max-Age=${OWNER_SESSION_TTL/1000}`);
-        return res.json({ username: 'device-owner' });
-      }
-      return res.status(401).json({ message: 'Device key ไม่ถูกต้อง' });
-    } catch (e) {
-      console.error('owner deviceKey login error', e);
-      return res.status(500).json({ message: 'ไม่สามารถเข้าสู่ระบบด้วย deviceKey ได้' });
-    }
-  }
-
-  // Fallback: username/password auth (kept for backward compatibility)
-  if (!username || !password) return res.status(400).json({ message: 'กรอก username และ password หรือ deviceKey' });
-  try {
-    const snap = await admin.database().ref(`owners/${username}`).get();
-    if (!snap.exists()) {
-      // fallback to env owner credentials if set
-      if (process.env.OWNER_USERNAME && process.env.OWNER_PASSWORD && process.env.OWNER_USERNAME === username && process.env.OWNER_PASSWORD === password) {
-        // create session
-      } else {
-        return res.status(401).json({ message: 'ไม่พบผู้ดูแลหรือรหัสผ่านผิด' });
-      }
-    } else {
-      const o = snap.val();
-      if (String(o.password || '') !== String(password)) return res.status(401).json({ message: 'รหัสผ่านไม่ถูกต้อง' });
-    }
-
-    const token = crypto.randomBytes(32).toString('hex');
-    ownerSessions.set(token, { username, expiresAt: Date.now() + OWNER_SESSION_TTL });
-    // set cookie (HttpOnly)
-    res.setHeader('Set-Cookie', `ownerSession=${token}; HttpOnly; Path=/; Max-Age=${OWNER_SESSION_TTL/1000}`);
-    res.json({ username });
-  } catch (e) {
-    console.error('owner login error', e);
-    res.status(500).json({ message: 'ไม่สามารถเข้าสู่ระบบได้' });
-  }
-});
-
-app.post('/owner/logout', (req, res) => {
-  const token = req.cookies?.ownerSession;
-  if (token) ownerSessions.delete(token);
-  res.setHeader('Set-Cookie', `ownerSession=; HttpOnly; Path=/; Max-Age=0`);
-  res.json({ ok: true });
-});
-
-// Protect owner APIs
-app.get('/api/owner/dashboard', ownerAuth, async (req, res) => {
-  try {
-    const machines = (await admin.database().ref('machines').get()).val() || {};
-    const lockers = (await admin.database().ref('lockers').get()).val() || {};
-    const users = (await admin.database().ref('users').get()).val() || {};
-
-    const totalMachines = Object.keys(machines).length;
-    const totalLockers = Object.keys(lockers).length;
-    let availableLockers = 0;
-    let occupiedLockers = 0;
-    Object.values(lockers).forEach(l=>{ if (l && l.owner) occupiedLockers++; else availableLockers++ });
-
-    const pendingRegistration = Object.values(users).filter(u=>u?.rfidStatus==='pending').length;
-    const registeredUsers = Object.values(users).filter(u=>u?.rfidStatus!=='pending').length;
-
-    let onlineDevices = 0;
-    Object.values(machines).forEach(m=>{ if (m && m.online) onlineDevices++ });
-    const offlineDevices = totalMachines - onlineDevices;
-
-    res.json({ totalMachines, totalLockers, availableLockers, occupiedLockers, pendingRegistration, registeredUsers, onlineDevices, offlineDevices });
-  } catch (e) { console.error(e); res.status(500).json({ message: 'อ่าน dashboard ไม่สำเร็จ' }) }
-});
-
-// create machine and many lockers
-app.post('/api/owner/machines', ownerAuth, async (req, res) => {
-  const { machineId, name, lockerCount } = req.body || {};
-  if (!machineId || !lockerCount) return res.status(400).json({ message: 'machineId and lockerCount required' });
-  try {
-    const mref = admin.database().ref(`machines/${machineId}`);
-    await mref.set({ machineId, name: name||null, createdAt: admin.database.ServerValue.TIMESTAMP });
-    const updates = {};
-    for (let i=1;i<=Number(lockerCount);i++){
-      const idx = String(i).padStart(2,'0');
-      const lid = `${machineId}/${idx}`;
-      const lockerData = { lockerId: lid, machineId, status: 'available', registrationEnabled: true, owner: null, rfidUid: null, createdAt: admin.database.ServerValue.TIMESTAMP };
-      updates[`lockers/${lid.replace(/\//g,'__')}`] = lockerData;
-    }
-    await admin.database().ref().update(updates);
-    res.json({ message: 'machine created' });
-  } catch (e) { console.error(e); res.status(500).json({ message: 'สร้างเครื่องไม่สำเร็จ' }) }
-});
-
-// list lockers (simple)
-app.get('/api/owner/lockers', ownerAuth, async (req, res) => {
-  try {
-    const snap = await admin.database().ref('lockers').get();
-    const arr = Object.entries(snap.val()||{}).map(([k,v])=> ({ key:k, ...v }));
-    res.json(arr);
-  } catch (e){ console.error(e); res.status(500).json({ message: 'อ่านล็อกเกอร์ไม่สำเร็จ' }) }
-});
-
-// edit locker
-app.put('/api/owner/lockers/:key', ownerAuth, async (req, res) => {
-  try{
-    const key = req.params.key;
-    const body = req.body || {};
-    await admin.database().ref(`lockers/${key}`).update(body);
-    res.json({ ok:true });
-  }catch(e){ console.error(e); res.status(500).json({ message:'แก้ไขล็อกเกอร์ไม่สำเร็จ' }) }
-});
-
-// delete locker
-app.delete('/api/owner/lockers/:key', ownerAuth, async (req,res)=>{
-  try{ const key=req.params.key; await admin.database().ref(`lockers/${key}`).remove(); res.json({ok:true}) }catch(e){console.error(e); res.status(500).json({message:'ลบล็อกเกอร์ไม่สำเร็จ'})}
-});
-
-// reset locker owner
-app.post('/api/owner/lockers/:key/reset-owner', ownerAuth, async (req,res)=>{
-  try{ const key=req.params.key; await admin.database().ref(`lockers/${key}`).update({ owner:null, rfidUid:null, status:'available' }); res.json({ok:true}) }catch(e){console.error(e); res.status(500).json({message:'รีเซ็ตเจ้าของไม่สำเร็จ'})}
-});
-
-// users list
-app.get('/api/owner/users', ownerAuth, async (req,res)=>{
-  try{ const snap = await admin.database().ref('users').get(); const arr = Object.entries(snap.val()||{}).map(([uid,v])=>({uid, ...v})); res.json(arr); }catch(e){console.error(e); res.status(500).json({message:'อ่านผู้ใช้ไม่สำเร็จ'})}
-});
-
-// devices
-app.get('/api/owner/devices', ownerAuth, async (req,res)=>{
-  try{ const snap = await admin.database().ref('machines').get(); const arr = Object.values(snap.val()||{}).map(m=>({ machineId: m.machineId, online: m.online||false, firmware: m.firmware||null, rssi: m.rssi||null, lastSeen: m.lastSeen||null, deviceKey: m.deviceKey||null })); res.json(arr);}catch(e){console.error(e); res.status(500).json({message:'อ่านอุปกรณ์ไม่สำเร็จ'})}
-});
-
-// settings: save server device key
-app.post('/api/owner/settings/deviceKey', ownerAuth, async (req,res)=>{
-  try{ const { deviceKey } = req.body || {}; if(!deviceKey) return res.status(400).json({message:'deviceKey required'}); await admin.database().ref('server/deviceApiKey').set(deviceKey); res.json({ok:true}); }catch(e){console.error(e); res.status(500).json({message:'บันทึกค่าไม่สำเร็จ'})}
-});
-
-// export db (simple)
-app.get('/api/owner/export', ownerAuth, async (req,res)=>{
-  try{ const root = (await admin.database().ref().get()).val(); res.json(root);}catch(e){console.error(e); res.status(500).json({message:'ไม่สามารถส่งออกฐานข้อมูลได้'})}
-});
-
-// import db (dangerous) - replaces provided keys
-app.post('/api/owner/import', ownerAuth, async (req,res)=>{
-  try{ const data = req.body?.data; if(!data) return res.status(400).json({message:'data required'}); await admin.database().ref().set(data); res.json({ok:true}); }catch(e){console.error(e); res.status(500).json({message:'นำเข้าฐานข้อมูลไม่สำเร็จ'})}
-});
-
 app.listen(process.env.PORT || 3000, () => {
   if (configured()) {
     initializePendingRemovals().catch(console.error);
