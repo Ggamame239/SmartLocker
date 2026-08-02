@@ -177,14 +177,15 @@
         const d = await r.json();
         if (!r.ok) throw Error(d.message);
 
-        const expiresAt = d.profile.rfidExpiresAt || Number(localStorage.getItem('rfidExpiresAt'));
-        if (expiresAt && !renderCountdown(expiresAt)) return;
-
         if (d.profile.rfidStatus === 'verified') {
           statusEl.textContent = 'ยืนยันบัตรสำเร็จ กำลังเข้าสู่ระบบ…';
           clearInterval(timeoutId);
           setTimeout(() => location.replace('/dashboard.html'), 700);
+          return;
         }
+
+        const expiresAt = d.profile.rfidExpiresAt || Number(localStorage.getItem('rfidExpiresAt'));
+        if (expiresAt && !renderCountdown(expiresAt)) return;
       } catch (e) {
         statusEl.textContent = e.message || 'เกิดข้อผิดพลาด';
       }
