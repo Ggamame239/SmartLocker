@@ -497,8 +497,36 @@ app.post('/api/lockers/:id', authenticate, async (req, res) => {
 // Owner login - credentials stored in Realtime DB under `owners/{username}` with field `password`
 app.post('/owner/login', async (req, res) => {
   if (failIfUnconfigured(res)) return;
-  const { username, password } = req.body || {};
-  if (!username || !password) return res.status(400).json({ message: 'กรอก username และ password' });
+  const { username, password, deviceKey } = req.body || {};
+
+  // If deviceKey is provided, authenticate via the server/deviceApiKey or env fallback
+  if (deviceKey) {
+    try {
+      const incoming = String(deviceKey || '').trim();
+      const expectedEnv = DEVICE_API_KEY;
+      let dbKey = null;
+      try {
+        const snap = await admin.database().ref('server/deviceApiKey').get();
+        if (snap.exists()) dbKey = String(snap.val()).trim();
+      } catch (e) {
+        console.error('Error reading server/deviceApiKey', e);
+      }
+
+      if (incoming && (incoming === expectedEnv || (dbKey && incoming === dbKey))) {
+        const token = crypto.randomBytes(32).toString('hex');
+        ownerSessions.set(token, { username: 'device-owner', expiresAt: Date.now() + OWNER_SESSION_TTL });
+        res.setHeader('Set-Cookie', `ownerSession=${token}; HttpOnly; Path=/; Max-Age=${OWNER_SESSION_TTL/1000}`);
+        return res.json({ username: 'device-owner' });
+      }
+      return res.status(401).json({ message: 'Device key ไม่ถูกต้อง' });
+    } catch (e) {
+      console.error('owner deviceKey login error', e);
+      return res.status(500).json({ message: 'ไม่สามารถเข้าสู่ระบบด้วย deviceKey ได้' });
+    }
+  }
+
+  // Fallback: username/password auth (kept for backward compatibility)
+  if (!username || !password) return res.status(400).json({ message: 'กรอก username และ password หรือ deviceKey' });
   try {
     const snap = await admin.database().ref(`owners/${username}`).get();
     if (!snap.exists()) {

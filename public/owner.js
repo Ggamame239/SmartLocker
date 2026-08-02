@@ -16,13 +16,12 @@ navLinks.forEach(a=>a.addEventListener('click', (e)=>{
 // Login flow
 const loginBtn = document.getElementById('loginBtn');
 loginBtn.onclick = async ()=>{
-  const user = document.getElementById('loginUser').value.trim();
-  const pass = document.getElementById('loginPass').value;
+  const deviceKey = document.getElementById('deviceKeyInput').value.trim();
   try{
-    const res = await fetch('/owner/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:user,password:pass})});
+    const res = await fetch('/owner/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({deviceKey})});
     const d = await res.json();
     if(!res.ok) throw new Error(d.message||'Login failed');
-    currentOwner = d.username; ownerNameEl.textContent = currentOwner;
+    currentOwner = d.username || 'owner'; ownerNameEl.textContent = currentOwner;
     document.getElementById('login').classList.add('hidden');
     showPanel('dashboard');
     await loadDashboard();
