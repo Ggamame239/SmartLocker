@@ -388,7 +388,6 @@ app.get('/api/me', authenticate, async (req, res) => {
 });
 
 // Endpoint สำหรับ ESP32 ส่ง UID บัตร RFID มาให้
-// Endpoint สำหรับ ESP32 ส่ง UID บัตร RFID มาให้
 app.post('/api/rfid/scan', async (req, res) => {
   if (failIfUnconfigured(res)) return;
 
@@ -404,76 +403,80 @@ app.post('/api/rfid/scan', async (req, res) => {
   const deviceKeyMatches = expectedDeviceKey && incomingDeviceKey && (
     incomingDeviceKey === expectedDeviceKey || incomingDeviceKey === `DEVICE_API_KEY=${expectedDeviceKey}` || (dbDeviceKey && (incomingDeviceKey === dbDeviceKey || incomingDeviceKey === `DEVICE_API_KEY=${dbDeviceKey}`))
   );
-  if (!deviceKeyMatches) {
-    return res.status(401).json({ message: 'Device key ไม่ถูกต้อง' });
-  }
+  if (!deviceKeyMatches) return res.status(401).json({ message: 'Device key ไม่ถูกต้อง' });
 
   const cardUid = String(req.body?.cardUid || '').trim().replace(/[^a-zA-Z0-9_-]/g, '').toUpperCase();
   if (cardUid.length < 4) return res.status(400).json({ message: 'RFID card UID ไม่ถูกต้อง' });
 
-  // *** ใหม่: ชื่อที่ ESP32 ส่งมาด้วย (ตั้งไว้ในโค้ดของ ESP เอง) ***
-  const scanName = String(req.body?.name || '').trim().slice(0, 60);
+  // helper: หา locker ที่ uid นี้เป็นเจ้าของ
+  async function getOwnedLockerIds(uid) {
+    const lockers = (await admin.database().ref('lockers').get()).val() || {};
+    return Object.entries(lockers)
+      .filter(([, locker]) => locker?.ownerUid === uid)
+      .map(([id]) => Number(id));
+  }
 
   try {
     const cardSnapshot = await admin.database().ref(`rfidCards/${cardUid}`).get();
     if (cardSnapshot.exists()) {
-      // อัปเดตชื่อล่าสุดที่แตะ และเวลาแตะ
-      await admin.database().ref(`rfidCards/${cardUid}`).update({
-        lastScanName: scanName || null,
-        lastScanAt: admin.database.ServerValue.TIMESTAMP,
-      });
-      // เก็บ log การแตะทุกครั้งไว้ดูย้อนหลังได้
-      await admin.database().ref('rfidScanLog').push({
-        cardUid, name: scanName || null, at: admin.database.ServerValue.TIMESTAMP,
-      });
-
       const resetResult = await verifyPasswordResetWithCard(cardUid);
       if (resetResult) {
         return res.json({ message: 'ยืนยันบัตร RFID สำหรับรีเซ็ตรหัสผ่านสำเร็จ', requestId: resetResult.requestId });
       }
-      return res.status(409).json({ message: 'บัตรนี้ถูกยืนยันแล้ว' });
+
+      const ownerUid = cardSnapshot.val()?.uid;
+      let ownerUsername = null;
+      let lockerIds = [];
+      if (ownerUid) {
+        const profileSnap = await admin.database().ref(`users/${ownerUid}`).get();
+        ownerUsername = profileSnap.val()?.username || null;
+        lockerIds = await getOwnedLockerIds(ownerUid);
+      }
+
+      return res.status(409).json({
+        message: 'บัตรนี้ถูกยืนยันแล้ว',
+        username: ownerUsername,
+        uid: ownerUid || null,
+        lockerIds,
+      });
     }
 
     const queue = (await admin.database().ref('rfidEnrollmentQueue').get()).val() || {};
-    const next = Object.entries(queue)
-      .sort(([, a], [, b]) => (a.requestedAt || 0) - (b.requestedAt || 0))[0];
+    const next = Object.entries(queue).sort(([, a], [, b]) => (a.requestedAt || 0) - (b.requestedAt || 0))[0];
     if (!next) return res.status(202).json({ message: 'ไม่มีผู้ใช้รอยืนยัน RFID' });
 
     const [uid] = next;
-    console.log('RFID scan: assigning card', cardUid, 'to uid', uid);
-
     const updates = {
       [`users/${uid}/rfidStatus`]: 'verified',
       [`users/${uid}/rfidUid`]: cardUid,
-      // *** บันทึกชื่อที่ ESP ส่งมาไว้กับบัตรตั้งแต่ตอนลงทะเบียน ***
-      [`rfidCards/${cardUid}`]: { uid, name: scanName || null, verifiedAt: admin.database.ServerValue.TIMESTAMP },
+      [`rfidCards/${cardUid}`]: { uid, verifiedAt: admin.database.ServerValue.TIMESTAMP },
       [`rfidEnrollmentQueue/${uid}`]: null,
     };
 
+    // *** ใหม่: หา locker ว่าง (ยังไม่มี ownerUid) แล้ว auto-assign ให้ user นี้ ***
+    const allLockers = (await admin.database().ref('lockers').get()).val() || {};
+    const freeLockerEntry = Object.entries(allLockers).find(([, l]) => !l?.ownerUid);
+    if (freeLockerEntry) {
+      const [freeLockerId] = freeLockerEntry;
+      updates[`lockers/${freeLockerId}/ownerUid`] = uid;
+      console.log('Auto-assigned locker', freeLockerId, 'to uid', uid);
+    }
+
     await admin.database().ref().update(updates);
 
+    let username = null;
     try {
       const profileSnap = await admin.database().ref(`users/${uid}`).get();
-      console.log('After update, users/' + uid + ':', profileSnap.val());
+      username = profileSnap.val()?.username || null;
     } catch (readErr) {
       console.error('Error reading back profile after update:', readErr);
     }
 
-    res.json({ message: 'ยืนยันบัตร RFID สำเร็จ', name: scanName || null });
+    const lockerIds = await getOwnedLockerIds(uid);
+    res.json({ message: 'ยืนยันบัตร RFID สำเร็จ', username, uid, lockerIds });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'บันทึกบัตร RFID ไม่สำเร็จ' });
-  }
-});
-
-// คืนข้อมูลล็อกเกอร์ที่ผู้ใช้เป็นเจ้าของเท่านั้น
-app.get('/api/lockers', authenticate, async (req, res) => {
-  try {
-    const value = (await admin.database().ref('lockers').get()).val() || {};
-    const owned = Object.fromEntries(Object.entries(value).filter(([, locker]) => locker?.ownerUid === req.user.uid));
-    res.json({ lockers: owned });
-  } catch {
-    res.status(500).json({ message: 'อ่านข้อมูลล็อกเกอร์ไม่สำเร็จ' });
   }
 });
 
