@@ -10,8 +10,8 @@
   <main class="page">
     <div class="login-card" style="max-width:420px;margin:40px auto;">
       <h2>Login for Owner</h2>
-      <p style="color:#816e58">โปรดใส่ Device API Key ที่ได้จากอุปกรณ์ ESP เพื่อเข้าสู่ระบบเจ้าของ</p>
-      <input id="deviceKey" placeholder="Device API Key" style="width:100%;padding:10px;border-radius:8px;margin:10px 0;" />
+      <p style="color:#816e58">โปรดใส่ License Key ที่ได้จากอุปกรณ์ ESP เพื่อเข้าสู่ระบบเจ้าของ</p>
+      <input id="deviceKey" placeholder="License Key" style="width:100%;padding:10px;border-radius:8px;margin:10px 0;" />
       <div style="display:flex;gap:8px;align-items:center">
         <button id="loginBtn" style="padding:10px 16px;background:#b6382a;color:#fff;border:0;border-radius:8px;">Login</button>
         <a href="/" style="color:#685642">กลับไปหน้าเข้าสู่ระบบผู้ใช้</a>
@@ -23,7 +23,7 @@
     document.getElementById('loginBtn').addEventListener('click', async ()=>{
       const key = document.getElementById('deviceKey').value.trim();
       const msg = document.getElementById('msg'); msg.textContent='';
-      if(!key) { msg.textContent='โปรดกรอก Device API Key'; return }
+      if(!key) { msg.textContent='โปรดกรอก License Key'; return }
       try{
         const res = await fetch('/owner/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceKey:key})});
         const d = await res.json();

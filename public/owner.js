@@ -16,9 +16,9 @@ navLinks.forEach(a=>a.addEventListener('click', (e)=>{
 // Login flow
 const loginBtn = document.getElementById('loginBtn');
 loginBtn.onclick = async ()=>{
-  const deviceKey = document.getElementById('deviceKeyInput').value.trim();
+  const LicenseKey = document.getElementById('LicenseKeyInput').value.trim();
   try{
-    const res = await fetch('/owner/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({deviceKey})});
+    const res = await fetch('/owner/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({LicenseKey})});
     const d = await res.json();
     if(!res.ok) throw new Error(d.message||'Login failed');
     currentOwner = d.username || 'owner'; ownerNameEl.textContent = currentOwner;
@@ -76,9 +76,9 @@ async function loadDevices(){
   try{ const data = await ownerFetch('/devices'); const tbody=document.querySelector('#devicesTable tbody'); tbody.innerHTML=''; data.forEach(dv=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${dv.machineId}</td><td>${dv.online? 'Online':'Offline'}</td><td>${dv.firmware||''}</td><td>${dv.rssi||''}</td><td>${dv.lastSeen||''}</td><td>${dv.deviceKey||''}</td>`; tbody.appendChild(tr) }) }catch(e){console.error(e)} }
 
 // Settings
-document.getElementById('genDeviceKey').onclick = ()=>{ document.getElementById('serverDeviceKey').value = Array.from(crypto.getRandomValues(new Uint8Array(24))).map(b=>b.toString(16).padStart(2,'0')).join('') }
-document.getElementById('saveDeviceKey').onclick = async ()=>{
-  const v = document.getElementById('serverDeviceKey').value.trim(); if(!v) return alert('Empty'); try{ await postJSON('/settings/deviceKey',{deviceKey:v}); alert('Saved') }catch(e){alert(e.message)} }
+document.getElementById('genLicenseKey').onclick = ()=>{ document.getElementById('serverLicenseKey').value = Array.from(crypto.getRandomValues(new Uint8Array(24))).map(b=>b.toString(16).padStart(2,'0')).join('') }
+document.getElementById('saveLicenseKey').onclick = async ()=>{
+  const v = document.getElementById('serverLicenseKey').value.trim(); if(!v) return alert('Empty'); try{ await postJSON('/settings/LicenseKey',{LicenseKey:v}); alert('Saved') }catch(e){alert(e.message)} }
 
 document.getElementById('exportDb').onclick = async ()=>{ try{ const data = await ownerFetch('/export'); const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='firebase-export.json'; a.click(); }catch(e){alert(e.message)} }
 
