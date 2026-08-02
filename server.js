@@ -65,7 +65,7 @@ app.get('/owner', (req, res) => {
 // lightweight middleware to parse cookies (for owner session)
 app.use((req, res, next) => {
   const cookie = req.headers.cookie || '';
-  req.cookies = Object.fromEntries(cookie.split(';').map(s=>s.trim()).filter(Boolean).map(s=>{ const i=s.indexOf('='); return [s.slice(0,i), decodeURIComponent(s.slice(i+1))] }));
+  req.cookies = Object.fromEntries(cookie.split(';').map(s => s.trim()).filter(Boolean).map(s => { const i = s.indexOf('='); return [s.slice(0, i), decodeURIComponent(s.slice(i + 1))] }));
   next();
 });
 
@@ -388,13 +388,12 @@ app.get('/api/me', authenticate, async (req, res) => {
 });
 
 // Endpoint สำหรับ ESP32 ส่ง UID บัตร RFID มาให้
+// Endpoint สำหรับ ESP32 ส่ง UID บัตร RFID มาให้
 app.post('/api/rfid/scan', async (req, res) => {
   if (failIfUnconfigured(res)) return;
 
-  // ตรวจสอบ Device Key เพื่อให้เฉพาะฮาร์ดแวร์ที่อนุญาตเข้าถึงได้
   const expectedDeviceKey = DEVICE_API_KEY;
   const incomingDeviceKey = String(req.headers['x-device-key'] || req.headers['X-Device-Key'] || '').trim();
-  // also accept a device key stored in the realtime DB under server/deviceApiKey
   let dbDeviceKey = null;
   try {
     const snap = await admin.database().ref('server/deviceApiKey').get();
@@ -405,7 +404,6 @@ app.post('/api/rfid/scan', async (req, res) => {
   const deviceKeyMatches = expectedDeviceKey && incomingDeviceKey && (
     incomingDeviceKey === expectedDeviceKey || incomingDeviceKey === `DEVICE_API_KEY=${expectedDeviceKey}` || (dbDeviceKey && (incomingDeviceKey === dbDeviceKey || incomingDeviceKey === `DEVICE_API_KEY=${dbDeviceKey}`))
   );
-
   if (!deviceKeyMatches) {
     return res.status(401).json({ message: 'Device key ไม่ถูกต้อง' });
   }
@@ -413,10 +411,22 @@ app.post('/api/rfid/scan', async (req, res) => {
   const cardUid = String(req.body?.cardUid || '').trim().replace(/[^a-zA-Z0-9_-]/g, '').toUpperCase();
   if (cardUid.length < 4) return res.status(400).json({ message: 'RFID card UID ไม่ถูกต้อง' });
 
+  // *** ใหม่: ชื่อที่ ESP32 ส่งมาด้วย (ตั้งไว้ในโค้ดของ ESP เอง) ***
+  const scanName = String(req.body?.name || '').trim().slice(0, 60);
+
   try {
     const cardSnapshot = await admin.database().ref(`rfidCards/${cardUid}`).get();
     if (cardSnapshot.exists()) {
-      // ถ้าบัตรติดตั้งไว้แล้ว ให้ตรวจสอบว่ามันกำลังใช้เพื่อยืนยันคำขอรีเซ็ตรหัสผ่านหรือไม่
+      // อัปเดตชื่อล่าสุดที่แตะ และเวลาแตะ
+      await admin.database().ref(`rfidCards/${cardUid}`).update({
+        lastScanName: scanName || null,
+        lastScanAt: admin.database.ServerValue.TIMESTAMP,
+      });
+      // เก็บ log การแตะทุกครั้งไว้ดูย้อนหลังได้
+      await admin.database().ref('rfidScanLog').push({
+        cardUid, name: scanName || null, at: admin.database.ServerValue.TIMESTAMP,
+      });
+
       const resetResult = await verifyPasswordResetWithCard(cardUid);
       if (resetResult) {
         return res.json({ message: 'ยืนยันบัตร RFID สำหรับรีเซ็ตรหัสผ่านสำเร็จ', requestId: resetResult.requestId });
@@ -424,7 +434,6 @@ app.post('/api/rfid/scan', async (req, res) => {
       return res.status(409).json({ message: 'บัตรนี้ถูกยืนยันแล้ว' });
     }
 
-    // ถ้าบัตรยังไม่ลงทะเบียน ให้เลือกผู้ใช้ถัดไปที่อยู่ในคิว enrollment
     const queue = (await admin.database().ref('rfidEnrollmentQueue').get()).val() || {};
     const next = Object.entries(queue)
       .sort(([, a], [, b]) => (a.requestedAt || 0) - (b.requestedAt || 0))[0];
@@ -436,13 +445,13 @@ app.post('/api/rfid/scan', async (req, res) => {
     const updates = {
       [`users/${uid}/rfidStatus`]: 'verified',
       [`users/${uid}/rfidUid`]: cardUid,
-      [`rfidCards/${cardUid}`]: { uid, verifiedAt: admin.database.ServerValue.TIMESTAMP },
+      // *** บันทึกชื่อที่ ESP ส่งมาไว้กับบัตรตั้งแต่ตอนลงทะเบียน ***
+      [`rfidCards/${cardUid}`]: { uid, name: scanName || null, verifiedAt: admin.database.ServerValue.TIMESTAMP },
       [`rfidEnrollmentQueue/${uid}`]: null,
     };
 
     await admin.database().ref().update(updates);
 
-    // read back the profile to verify the write succeeded
     try {
       const profileSnap = await admin.database().ref(`users/${uid}`).get();
       console.log('After update, users/' + uid + ':', profileSnap.val());
@@ -450,7 +459,7 @@ app.post('/api/rfid/scan', async (req, res) => {
       console.error('Error reading back profile after update:', readErr);
     }
 
-    res.json({ message: 'ยืนยันบัตร RFID สำเร็จ' });
+    res.json({ message: 'ยืนยันบัตร RFID สำเร็จ', name: scanName || null });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'บันทึกบัตร RFID ไม่สำเร็จ' });
@@ -488,6 +497,22 @@ app.post('/api/lockers/:id', authenticate, async (req, res) => {
   } catch {
     res.status(500).json({ message: 'บันทึกคำสั่งลง Firebase ไม่สำเร็จ' });
   }
+});
+app.post('/owner/login', (req, res) => {
+  const { deviceKey } = req.body;
+  const key = String(deviceKey || '').trim();
+
+  if (!key || key !== DEVICE_API_KEY) {
+    return res.status(401).json({ message: 'Device API Key ไม่ถูกต้อง' });
+  }
+
+  // สร้าง session token ให้ owner
+  const token = crypto.randomBytes(32).toString('hex');
+  ownerSessions.set(token, { username: 'owner', expiresAt: Date.now() + OWNER_SESSION_TTL })
+
+  // ตั้ง cookie ให้ browser เก็บ session ไว้
+  res.setHeader('Set-Cookie', `ownerSession=${token}; HttpOnly; Path=/; Max-Age=${OWNER_SESSION_TTL / 1000}`);
+  res.json({ message: 'เข้าสู่ระบบสำเร็จ' });
 });
 
 // เริ่มต้นเซิร์ฟเวอร์ และตั้ง timeout เพื่อลบบัญชีที่รอ RFID เกินเวลา
