@@ -385,12 +385,24 @@ app.post('/api/rfid/scan', async (req, res) => {
     if (!next) return res.status(202).json({ message: 'ไม่มีผู้ใช้รอยืนยัน RFID' });
 
     const [uid] = next;
-    await admin.database().ref().update({
+    console.log('RFID scan: assigning card', cardUid, 'to uid', uid);
+
+    const updates = {
       [`users/${uid}/rfidStatus`]: 'verified',
       [`users/${uid}/rfidUid`]: cardUid,
       [`rfidCards/${cardUid}`]: { uid, verifiedAt: admin.database.ServerValue.TIMESTAMP },
       [`rfidEnrollmentQueue/${uid}`]: null,
-    });
+    };
+
+    await admin.database().ref().update(updates);
+
+    // read back the profile to verify the write succeeded
+    try {
+      const profileSnap = await admin.database().ref(`users/${uid}`).get();
+      console.log('After update, users/' + uid + ':', profileSnap.val());
+    } catch (readErr) {
+      console.error('Error reading back profile after update:', readErr);
+    }
 
     res.json({ message: 'ยืนยันบัตร RFID สำเร็จ' });
   } catch (error) {
