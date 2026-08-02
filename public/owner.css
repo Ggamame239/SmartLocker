@@ -1,0 +1,25 @@
+:root{--bg:#0f1720;--card:#0b1220;--accent:#6ee7b7;--muted:#9aa4b2}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#071022,#0f1720);color:#e6eef6}
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;background:#06121a;padding:24px;border-right:1px solid rgba(255,255,255,.03)}
+.brand{color:var(--accent);margin:0 0 16px}
+.sidebar nav a{display:block;color:var(--muted);padding:8px 6px;border-radius:6px;text-decoration:none;margin-bottom:6px}
+.sidebar nav a.active{background:rgba(110,231,183,.08);color:var(--accent)}
+.main{flex:1;padding:16px}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:rgba(255,255,255,.02);border-radius:10px;margin-bottom:16px}
+.center{display:grid;place-items:center;height:calc(100vh - 120px)}
+.login-card{width:320px;background:var(--card);padding:20px;border-radius:10px}
+.login-card input{width:100%;padding:10px;margin:8px 0;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:transparent;color:inherit}
+.login-card button{width:100%;padding:10px;background:var(--accent);border:0;border-radius:8px;color:#042022;font-weight:700}
+.panel.hidden{display:none}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));padding:16px;border-radius:10px}
+.table-wrap{overflow:auto;background:rgba(255,255,255,.02);padding:12px;border-radius:8px}
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;padding:8px;color:var(--muted)}
+tbody td{padding:8px;border-top:1px solid rgba(255,255,255,.02)}
+.form-row{display:flex;gap:8px;align-items:center;margin:8px 0}
+button{cursor:pointer}
+.error{color:#ffb4b4;margin-top:8px}
+@media(max-width:800px){.sidebar{display:none}.main{padding:8px}}

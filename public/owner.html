@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SmartLocker — Owner Panel</title>
+  <link rel="stylesheet" href="/owner.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <h2 class="brand">SmartLocker</h2>
+      <nav>
+        <a href="#dashboard" class="active">Dashboard</a>
+        <a href="#machines">Machines</a>
+        <a href="#lockers">Lockers</a>
+        <a href="#users">Users</a>
+        <a href="#devices">Devices</a>
+        <a href="#settings">Settings</a>
+      </nav>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="left">Owner Panel</div>
+        <div class="right">
+          <span id="ownerName"></span>
+          <button id="logoutBtn">Logout</button>
+        </div>
+      </header>
+
+      <section id="login" class="panel center">
+        <div class="login-card">
+          <h3>Owner Login</h3>
+          <input id="loginUser" placeholder="Username" />
+          <input id="loginPass" type="password" placeholder="Password" />
+          <button id="loginBtn">Login</button>
+          <div id="loginError" class="error"></div>
+        </div>
+      </section>
+
+      <section id="dashboard" class="panel hidden">
+        <div class="cards" id="dashboardCards">
+          <!-- cards rendered by JS -->
+        </div>
+      </section>
+
+      <section id="machines" class="panel hidden">
+        <div class="panel-header">
+          <h3>Machines</h3>
+          <div>
+            <input id="machineId" placeholder="Machine ID (e.g. TK01)" />
+            <input id="machineName" placeholder="Name" />
+            <input id="lockerCount" type="number" min="1" placeholder="Locker Count" />
+            <button id="createMachine">Create</button>
+          </div>
+        </div>
+        <div id="machineList"></div>
+      </section>
+
+      <section id="lockers" class="panel hidden">
+        <h3>Lockers</h3>
+        <div class="table-wrap"><table id="lockersTable"><thead><tr><th>Locker ID</th><th>Machine</th><th>Status</th><th>Owner</th><th>RFID UID</th><th>Registration</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+      </section>
+
+      <section id="users" class="panel hidden">
+        <h3>Users</h3>
+        <div class="table-wrap"><table id="usersTable"><thead><tr><th>Username</th><th>Email</th><th>Locker Quota</th><th>Current</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+      </section>
+
+      <section id="devices" class="panel hidden">
+        <h3>Devices</h3>
+        <div class="table-wrap"><table id="devicesTable"><thead><tr><th>Machine</th><th>Status</th><th>Firmware</th><th>RSSI</th><th>Last Seen</th><th>API Key</th></tr></thead><tbody></tbody></table></div>
+      </section>
+
+      <section id="settings" class="panel hidden">
+        <h3>Settings</h3>
+        <div class="form-row">
+          <label>Server Device API Key</label>
+          <input id="serverDeviceKey" />
+          <button id="saveDeviceKey">Save</button>
+          <button id="genDeviceKey">Generate</button>
+        </div>
+        <div class="form-row">
+          <button id="exportDb">Export DB (Download)</button>
+          <input type="file" id="importFile" />
+          <button id="importDb">Import DB</button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+<script src="/owner-api.js"></script>
+<script src="/owner.js"></script>
+</body>
+</html>
